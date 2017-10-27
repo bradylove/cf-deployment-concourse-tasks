@@ -24,12 +24,43 @@ function check_upload_stemcell_params() {
   fi
 }
 
+function upload_stemcells() {
+  local arguments
+  arguments=""
+  for op in ${OPS_FILES}; do
+    arguments="${arguments} -o ops-files/${op}"
+  done
+
+  local i
+  i=0
+  while true; do
+    set +e
+    local stemcell
+    # We are intentionally passing a series of arguments here:
+    # shellcheck disable=SC2086
+    stemcell=$(bosh interpolate --path="/stemcells/${i}" cf-deployment/cf-deployment.yml${arguments})
+    local exit_code
+    exit_code=$?
+    set -e
+    if [ "${exit_code}" -ne "0" ]; then
+        return 0
+    fi
+    local os
+    os=$(echo "${stemcell}" | bosh interpolate --path=/os -)
+    local version
+    version=$(echo "${stemcell}" | bosh interpolate --path=/version -)
+
+    upload_stemcell "${os}" "${version}"
+
+    let i=i+1
+  done
+}
+
 function upload_stemcell() {
-  # Read potentially variable stemcell paramaters out of cf-deployment with bosh
   local os
-  os=$(bosh interpolate --path=/stemcells/alias=default/os cf-deployment/cf-deployment.yml)
+  os=$1
   local version
-  version=$(bosh interpolate --path=/stemcells/alias=default/version cf-deployment/cf-deployment.yml)
+  version=$2
 
   # Hardcode a couple of stable stemcell paramaters
   local stemcells_url
@@ -66,7 +97,7 @@ function upload_stemcell() {
   if [ "${existing_stemcell}" ]; then
     echo "Task bosh-upload-stemcell-from-cf-deployment:"
     echo "Stemcell '${stemcell_name}/${version}' already exists.  Exiting..."
-    exit 0
+    return 0
   fi
 
   # ... otherwise, begin the upload process
@@ -80,9 +111,8 @@ function upload_stemcell() {
 function main() {
   check_upload_stemcell_params
   setup_bosh_env_vars
-  upload_stemcell
+  upload_stemcells
   close_bbl_ssh_connection
 }
 
 main
-

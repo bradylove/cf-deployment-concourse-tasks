@@ -11,6 +11,7 @@ inputs:
 - name: cf-deployment-concourse-tasks  # - This repo
 - name: cf-deployment  # - The cf-deployment manifest
 - name: bbl-state  # - The Director's `bbl-state.json`
+- name: ops-files
 
 run:
   path: cf-deployment-concourse-tasks/bosh-upload-stemcell-from-cf-deployment/task
@@ -26,6 +27,13 @@ params:
   # - Required
   # - Used to determine which stemcell will be uploaded
   # - Must be one of: aws, bosh-lite, google, or vsphere
+
+  OPS_FILES:
+  # - Optional
+  # - List of operations files to be applied to the manifest
+  # - Quoted and space-separated
+  # - Ops will be applied in the order they're listed
+  # - Paths are relative to root of the `ops-files` input
 
   # AWS Configuration Params
   # - Required for AWS
